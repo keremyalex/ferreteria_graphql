@@ -8,6 +8,7 @@ import {
   GET_COMPRAS,
   GET_PROVEEDORES 
 } from '../../graphql/proveedores';
+import { GET_PRODUCTOS } from '../../graphql/productos';
 import { toast } from 'react-toastify';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
@@ -28,46 +29,47 @@ export function CompraForm() {
   });
 
   const { data: proveedoresData } = useQuery(GET_PROVEEDORES);
+  const { data: productosData } = useQuery(GET_PRODUCTOS);
 
   const { loading: loadingCompra, error: compraError, data: compraData } = useQuery(
     GET_COMPRA,
     {
       variables: { id: parseInt(id) },
-      skip: !isEditing
+      skip: !isEditing,
     }
   );
 
   const [crearCompra, { loading: loadingCreate }] = useMutation(CREAR_COMPRA, {
+    refetchQueries: [{ query: GET_COMPRAS }],
     onCompleted: () => {
-      toast.success('Compra creada correctamente');
+      toast.success('Compra creada exitosamente');
       navigate('/app/compras');
     },
     onError: (error) => {
-      toast.error(error.message);
-    },
-    refetchQueries: [{ query: GET_COMPRAS }]
+      toast.error(`Error al crear la compra: ${error.message}`);
+    }
   });
 
   const [actualizarCompra, { loading: loadingUpdate }] = useMutation(ACTUALIZAR_COMPRA, {
+    refetchQueries: [{ query: GET_COMPRAS }],
     onCompleted: () => {
-      toast.success('Compra actualizada correctamente');
+      toast.success('Compra actualizada exitosamente');
       navigate('/app/compras');
     },
     onError: (error) => {
-      toast.error(error.message);
-    },
-    refetchQueries: [{ query: GET_COMPRAS }]
+      toast.error(`Error al actualizar la compra: ${error.message}`);
+    }
   });
 
   useEffect(() => {
-    if (isEditing && compraData?.compra) {
-      const { proveedorId, detalles } = compraData.compra;
+    if (isEditing && compraData?.compra?.compra) {
+      const { proveedorId, detalles } = compraData.compra.compra;
       setFormData({
-        proveedorId,
+        proveedorId: proveedorId.toString(),
         detalles: detalles.map(({ productoId, cantidad, precioUnitario }) => ({
-          productoId,
-          cantidad,
-          precioUnitario
+          productoId: productoId.toString(),
+          cantidad: cantidad.toString(),
+          precioUnitario: precioUnitario.toString()
         }))
       });
     }
@@ -93,10 +95,7 @@ export function CompraForm() {
   const addDetalle = () => {
     setFormData(prev => ({
       ...prev,
-      detalles: [
-        ...prev.detalles,
-        { productoId: '', cantidad: '', precioUnitario: '' }
-      ]
+      detalles: [...prev.detalles, { productoId: '', cantidad: '', precioUnitario: '' }]
     }));
   };
 
@@ -109,7 +108,6 @@ export function CompraForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     try {
       const input = {
         proveedorId: parseInt(formData.proveedorId),
@@ -134,13 +132,14 @@ export function CompraForm() {
       }
     } catch (error) {
       console.error('Error:', error);
+      toast.error(`Error al procesar la compra: ${error.message}`);
     }
   };
 
-  if (isEditing && loadingCompra) {
+  if (loadingCompra) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+        <div className="text-lg text-gray-600">Cargando...</div>
       </div>
     );
   }
@@ -148,10 +147,12 @@ export function CompraForm() {
   if (compraError) {
     return (
       <div className="p-4 text-center text-red-500">
-        Error al cargar los datos de la compra: {compraError.message}
+        Error al cargar la compra: {compraError.message}
       </div>
     );
   }
+
+  const compra = compraData?.compra?.compra;
 
   return (
     <div className="p-4 bg-white rounded-lg shadow sm:p-6">
@@ -175,7 +176,7 @@ export function CompraForm() {
             onChange={handleChange}
           >
             <option value="">Selecciona un proveedor</option>
-            {proveedoresData?.proveedores.map((proveedor) => (
+            {proveedoresData?.proveedores?.map((proveedor) => (
               <option key={proveedor.id} value={proveedor.id}>
                 {proveedor.nombre}
               </option>
@@ -205,43 +206,66 @@ export function CompraForm() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block mb-1 text-sm font-medium text-gray-700">
-                      Producto ID
+                      Producto
                     </label>
-                    <input
-                      type="number"
-                      required
-                      disabled={isEditing}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                      value={detalle.productoId}
-                      onChange={(e) => handleDetalleChange(index, 'productoId', e.target.value)}
-                    />
+                    {isEditing ? (
+                      <div className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm sm:text-base">
+                        {productosData?.productos?.find(p => p.id === detalle.productoId)?.nombre || `Producto #${detalle.productoId}`}
+                      </div>
+                    ) : (
+                      <select
+                        value={detalle.productoId}
+                        onChange={(e) => handleDetalleChange(index, 'productoId', e.target.value)}
+                        required
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Selecciona un producto</option>
+                        {productosData?.productos?.map((producto) => (
+                          <option key={producto.id} value={producto.id}>
+                            {producto.nombre} - {producto.unidadMedida.abreviatura}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
+
                   <div>
                     <label className="block mb-1 text-sm font-medium text-gray-700">
                       Cantidad
                     </label>
-                    <input
-                      type="number"
-                      required
-                      disabled={isEditing}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                      value={detalle.cantidad}
-                      onChange={(e) => handleDetalleChange(index, 'cantidad', e.target.value)}
-                    />
+                    {isEditing ? (
+                      <div className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm sm:text-base">
+                        {detalle.cantidad}
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        required
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        value={detalle.cantidad}
+                        onChange={(e) => handleDetalleChange(index, 'cantidad', e.target.value)}
+                      />
+                    )}
                   </div>
+
                   <div>
                     <label className="block mb-1 text-sm font-medium text-gray-700">
                       Precio Unitario
                     </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      disabled={isEditing}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-                      value={detalle.precioUnitario}
-                      onChange={(e) => handleDetalleChange(index, 'precioUnitario', e.target.value)}
-                    />
+                    {isEditing ? (
+                      <div className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm sm:text-base">
+                        {new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB' }).format(detalle.precioUnitario)}
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        value={detalle.precioUnitario}
+                        onChange={(e) => handleDetalleChange(index, 'precioUnitario', e.target.value)}
+                      />
+                    )}
                   </div>
                 </div>
                 {!isEditing && formData.detalles.length > 1 && (
@@ -259,6 +283,22 @@ export function CompraForm() {
           </div>
         </div>
 
+        {/* Estado de la compra */}
+        {isEditing && compra && (
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">
+              Estado actual
+            </label>
+            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${
+              compra.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+              compra.estado === 'completada' ? 'bg-green-100 text-green-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {compra.estado.charAt(0).toUpperCase() + compra.estado.slice(1)}
+            </div>
+          </div>
+        )}
+
         {/* Botones */}
         <div className="flex flex-col gap-3 pt-4 mt-6 border-t sm:flex-row">
           <button
@@ -266,7 +306,7 @@ export function CompraForm() {
             disabled={loadingCreate || loadingUpdate}
             className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md sm:w-auto sm:text-base hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {loadingCreate || loadingUpdate ? 'Guardando...' : isEditing ? 'Actualizar Estado' : 'Crear Compra'}
+            {loadingCreate || loadingUpdate ? 'Guardando...' : isEditing ? 'Completar Compra' : 'Crear Compra'}
           </button>
           <button
             type="button"

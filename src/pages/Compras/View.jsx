@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_COMPRA } from '../../graphql/proveedores';
+import { GET_PRODUCTOS } from '../../graphql/productos';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const formatDate = (dateString) => {
@@ -29,27 +30,45 @@ const estadoColors = {
 
 export function CompraView() {
   const { id } = useParams();
-  const { loading, error, data } = useQuery(GET_COMPRA, {
+  const { loading: loadingCompra, error: errorCompra, data: compraData } = useQuery(GET_COMPRA, {
     variables: { id: parseInt(id) }
   });
 
-  if (loading) {
+  const { loading: loadingProductos, error: errorProductos, data: productosData } = useQuery(GET_PRODUCTOS);
+
+  if (loadingCompra || loadingProductos) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+        <div className="text-lg text-gray-600">Cargando...</div>
       </div>
     );
   }
 
-  if (error) {
+  if (errorCompra || errorProductos) {
     return (
       <div className="p-4 text-center text-red-500">
-        Error al cargar los detalles de la compra: {error.message}
+        Error al cargar los datos: {errorCompra?.message || errorProductos?.message}
       </div>
     );
   }
 
-  const { compra } = data;
+  const compra = compraData?.compra?.compra;
+  
+  if (!compra) {
+    return (
+      <div className="p-4 text-center text-red-500">
+        No se encontró la compra solicitada
+      </div>
+    );
+  }
+
+  const estadoText = compra.estado ? compra.estado.charAt(0).toUpperCase() + compra.estado.slice(1) : 'Desconocido';
+  const estadoColor = estadoColors[compra.estado] || 'bg-gray-100 text-gray-800';
+
+  const getProductoNombre = (productoId) => {
+    const producto = productosData?.productos?.find(p => p.id === productoId.toString());
+    return producto ? `${producto.nombre} - ${producto.unidadMedida.abreviatura}` : `Producto #${productoId}`;
+  };
 
   return (
     <div className="p-6 bg-white rounded shadow">
@@ -63,8 +82,8 @@ export function CompraView() {
           </Link>
           <h2 className="text-xl font-semibold">Detalles de Compra #{compra.id}</h2>
         </div>
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${estadoColors[compra.estado]}`}>
-          {compra.estado.charAt(0).toUpperCase() + compra.estado.slice(1)}
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${estadoColor}`}>
+          {estadoText}
         </span>
       </div>
 
@@ -96,16 +115,16 @@ export function CompraView() {
           <table className="min-w-full text-sm divide-y divide-gray-200">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-2 font-medium text-left text-gray-700">Producto ID</th>
+                <th className="px-4 py-2 font-medium text-left text-gray-700">Producto</th>
                 <th className="px-4 py-2 font-medium text-left text-gray-700">Cantidad</th>
                 <th className="px-4 py-2 font-medium text-left text-gray-700">Precio Unitario</th>
                 <th className="px-4 py-2 font-medium text-left text-gray-700">Subtotal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {compra.detalles.map((detalle) => (
+              {compra.detalles?.map((detalle) => (
                 <tr key={detalle.id}>
-                  <td className="px-4 py-2">{detalle.productoId}</td>
+                  <td className="px-4 py-2">{getProductoNombre(detalle.productoId)}</td>
                   <td className="px-4 py-2">{detalle.cantidad}</td>
                   <td className="px-4 py-2">{formatCurrency(detalle.precioUnitario)}</td>
                   <td className="px-4 py-2">{formatCurrency(detalle.subtotal)}</td>
