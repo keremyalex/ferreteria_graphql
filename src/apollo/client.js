@@ -32,43 +32,45 @@ const authLink = setContext((_, { headers }) => {
   }
 });
 
-export const client = new ApolloClient({
-  link: errorLink.concat(authLink.concat(httpLink)),
-  cache: new InMemoryCache({
-    typePolicies: {
-      Query: {
-        fields: {
-          movimientosInventario: {
-            merge(existing, incoming) {
-              return incoming;
-            }
-          }
-        }
-      },
-      MovimientoInventario: {
-        keyFields: ['id'],
-        fields: {
-          producto: {
-            merge: true
-          },
-          almacenOrigen: {
-            merge: true
-          },
-          almacenDestino: {
-            merge: true
+const cache = new InMemoryCache({
+  typePolicies: {
+    Query: {
+      fields: {
+        movimientosInventario: {
+          merge(existing, incoming) {
+            return incoming;
           }
         }
       }
     },
-    dataIdFromObject: object => {
-      switch (object.__typename) {
-        case 'MovimientoInventario': return `MovimientoInventario:${object.id}`;
-        case 'Producto': return `Producto:${object.id}`;
-        case 'Almacen': return `Almacen:${object.id}`;
-        default: return null;
+    MovimientoInventario: {
+      keyFields: ['id'],
+      fields: {
+        producto: {
+          merge: true
+        },
+        almacenOrigen: {
+          merge: true
+        },
+        almacenDestino: {
+          merge: true
+        }
       }
     }
-  }),
+  },
+  dataIdFromObject: object => {
+    switch (object.__typename) {
+      case 'MovimientoInventario': return `MovimientoInventario:${object.id}`;
+      case 'Producto': return `Producto:${object.id}`;
+      case 'Almacen': return `Almacen:${object.id}`;
+      default: return null;
+    }
+  }
+});
+
+export const client = new ApolloClient({
+  link: errorLink.concat(authLink.concat(httpLink)),
+  cache,
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'no-cache',
@@ -77,6 +79,13 @@ export const client = new ApolloClient({
     query: {
       fetchPolicy: 'no-cache',
       errorPolicy: 'all',
+    },
+    mutate: {
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all',
     }
   },
 });
+
+// Limpiar la caché al iniciar
+client.clearStore();

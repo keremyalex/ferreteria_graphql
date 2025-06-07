@@ -106,10 +106,4 @@ export const ANULAR_MOVIMIENTO = gql`
   mutation AnularMovimiento($id: ID!, $motivo: String!) {
     anularMovimiento(id: $id, motivo: $motivo)
   }
-`;
-
-export const ACTUALIZAR_STOCK = gql`
-  mutation ActualizarStock($productoId: ID!, $cantidad: Float!) {
-    actualizarStock(productoId: $productoId, cantidad: $cantidad)
-  }
 `; 

@@ -6,9 +6,11 @@ import {
   ACTUALIZAR_COMPRA, 
   GET_COMPRA, 
   GET_COMPRAS,
-  GET_PROVEEDORES 
+  GET_PROVEEDORES,
+  REGISTRAR_MOVIMIENTO 
 } from '../../graphql/proveedores';
 import { GET_PRODUCTOS } from '../../graphql/productos';
+import { GET_ALMACENES } from '../../graphql/almacenes';
 import { toast } from 'react-toastify';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
@@ -19,6 +21,7 @@ export function CompraForm() {
 
   const [formData, setFormData] = useState({
     proveedorId: '',
+    almacenId: '',
     detalles: [
       {
         productoId: '',
@@ -30,6 +33,7 @@ export function CompraForm() {
 
   const { data: proveedoresData } = useQuery(GET_PROVEEDORES);
   const { data: productosData } = useQuery(GET_PRODUCTOS);
+  const { data: almacenesData } = useQuery(GET_ALMACENES);
 
   const { loading: loadingCompra, error: compraError, data: compraData } = useQuery(
     GET_COMPRA,
@@ -61,11 +65,18 @@ export function CompraForm() {
     }
   });
 
+  const [registrarMovimiento] = useMutation(REGISTRAR_MOVIMIENTO, {
+    onError: (error) => {
+      toast.error(`Error al registrar el movimiento: ${error.message}`);
+    }
+  });
+
   useEffect(() => {
     if (isEditing && compraData?.compra?.compra) {
       const { proveedorId, detalles } = compraData.compra.compra;
       setFormData({
         proveedorId: proveedorId.toString(),
+        almacenId: '',
         detalles: detalles.map(({ productoId, cantidad, precioUnitario }) => ({
           productoId: productoId.toString(),
           cantidad: cantidad.toString(),
@@ -119,12 +130,36 @@ export function CompraForm() {
       };
 
       if (isEditing) {
+        if (!formData.almacenId) {
+          toast.error('Debe seleccionar un almacén para completar la compra');
+          return;
+        }
+
+        // Primero actualizamos el estado de la compra
         await actualizarCompra({
           variables: {
             id: parseInt(id),
             input: { estado: 'completada' }
           }
         });
+
+        // Luego actualizamos el stock y registramos los movimientos
+        for (const detalle of formData.detalles) {
+          // Registrar movimiento (esto también actualizará el stock)
+          await registrarMovimiento({
+            variables: {
+              input: {
+                productoId: detalle.productoId,
+                tipoMovimiento: 'ENTRADA',
+                cantidad: parseFloat(detalle.cantidad),
+                almacenDestinoId: formData.almacenId,
+                observaciones: `Ingreso por compra #${id}`
+              }
+            }
+          });
+        }
+
+        toast.success('Compra completada y stock actualizado exitosamente');
       } else {
         await crearCompra({
           variables: { input }
@@ -133,6 +168,22 @@ export function CompraForm() {
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Error al procesar la compra: ${error.message}`);
+    }
+  };
+
+  const handleCancelar = async () => {
+    try {
+      await actualizarCompra({
+        variables: {
+          id: parseInt(id),
+          input: { estado: 'cancelada' }
+        }
+      });
+      toast.success('Compra cancelada exitosamente');
+      navigate('/app/compras');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Error al cancelar la compra: ${error.message}`);
     }
   };
 
@@ -183,6 +234,30 @@ export function CompraForm() {
             ))}
           </select>
         </div>
+
+        {/* Almacén (solo en modo edición) */}
+        {isEditing && (
+          <div>
+            <label htmlFor="almacenId" className="block mb-1 text-sm font-medium text-gray-700">
+              Almacén Destino
+            </label>
+            <select
+              id="almacenId"
+              name="almacenId"
+              required
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              value={formData.almacenId}
+              onChange={handleChange}
+            >
+              <option value="">Selecciona un almacén</option>
+              {almacenesData?.almacenes?.map((almacen) => (
+                <option key={almacen.id} value={almacen.id}>
+                  {almacen.nombre} - {almacen.ubicacion}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Detalles de la compra */}
         <div>
@@ -301,19 +376,43 @@ export function CompraForm() {
 
         {/* Botones */}
         <div className="flex flex-col gap-3 pt-4 mt-6 border-t sm:flex-row">
-          <button
-            type="submit"
-            disabled={loadingCreate || loadingUpdate}
-            className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md sm:w-auto sm:text-base hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {loadingCreate || loadingUpdate ? 'Guardando...' : isEditing ? 'Completar Compra' : 'Crear Compra'}
-          </button>
+          {isEditing ? (
+            <>
+              {compra?.estado === 'pendiente' && (
+                <>
+                  <button
+                    type="submit"
+                    disabled={loadingUpdate}
+                    className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md sm:w-auto sm:text-base hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    {loadingUpdate ? 'Guardando...' : 'Completar Compra'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelar}
+                    disabled={loadingUpdate}
+                    className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md sm:w-auto sm:text-base hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  >
+                    Cancelar Compra
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <button
+              type="submit"
+              disabled={loadingCreate}
+              className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md sm:w-auto sm:text-base hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {loadingCreate ? 'Guardando...' : 'Crear Compra'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => navigate('/app/compras')}
             className="w-full px-4 py-2 text-sm font-medium text-center text-gray-700 bg-gray-100 rounded-md sm:w-auto sm:text-base hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
           >
-            Cancelar
+            Volver
           </button>
         </div>
       </form>
