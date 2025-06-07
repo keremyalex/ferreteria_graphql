@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_COMPRAS, ELIMINAR_COMPRA } from '../../graphql/proveedores';
+import { GET_COMPRAS, ELIMINAR_COMPRA, GET_PROVEEDORES } from '../../graphql/proveedores';
+import { GET_PRODUCTOS } from '../../graphql/productos';
 import { toast } from 'react-toastify';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { Modal } from '../../components/Modal';
@@ -38,6 +39,9 @@ export function ComprasList() {
     }
   });
 
+  const { data: proveedoresData } = useQuery(GET_PROVEEDORES);
+  const { data: productosData } = useQuery(GET_PRODUCTOS);
+
   const [eliminarCompra] = useMutation(ELIMINAR_COMPRA, {
     onCompleted: () => {
       toast.success('Compra eliminada correctamente');
@@ -49,6 +53,17 @@ export function ComprasList() {
     },
     refetchQueries: [{ query: GET_COMPRAS }]
   });
+
+  // Funciones auxiliares para obtener nombres
+  const getNombreProveedor = (id) => {
+    const proveedor = proveedoresData?.proveedores?.find(p => p.id === parseInt(id));
+    return proveedor ? proveedor.nombre : `Proveedor #${id}`;
+  };
+
+  const getNombreProducto = (id) => {
+    const producto = productosData?.productos?.find(p => p.id === parseInt(id));
+    return producto ? `${producto.nombre} (${producto.unidadMedida.abreviatura})` : `Producto #${id}`;
+  };
 
   const handleEliminar = async () => {
     try {
@@ -125,7 +140,7 @@ export function ComprasList() {
               <tr key={compra.id}>
                 <td className="px-4 py-2 whitespace-nowrap">{compra.id}</td>
                 <td className="px-4 py-2 whitespace-nowrap">{formatDate(compra.fechaCompra)}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{compra.proveedorId}</td>
+                <td className="px-4 py-2 whitespace-nowrap">{getNombreProveedor(compra.proveedorId)}</td>
                 <td className="px-4 py-2 whitespace-nowrap">{formatCurrency(compra.total)}</td>
                 <td className="px-4 py-2 whitespace-nowrap">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estadoColors[compra.estado]}`}>

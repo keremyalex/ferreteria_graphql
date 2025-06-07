@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
-import { GET_COMPRA } from '../../graphql/proveedores';
+import { GET_COMPRA, GET_PROVEEDORES } from '../../graphql/proveedores';
 import { GET_PRODUCTOS } from '../../graphql/productos';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
@@ -35,8 +35,9 @@ export function CompraView() {
   });
 
   const { loading: loadingProductos, error: errorProductos, data: productosData } = useQuery(GET_PRODUCTOS);
+  const { loading: loadingProveedores, error: errorProveedores, data: proveedoresData } = useQuery(GET_PROVEEDORES);
 
-  if (loadingCompra || loadingProductos) {
+  if (loadingCompra || loadingProductos || loadingProveedores) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg text-gray-600">Cargando...</div>
@@ -44,10 +45,10 @@ export function CompraView() {
     );
   }
 
-  if (errorCompra || errorProductos) {
+  if (errorCompra || errorProductos || errorProveedores) {
     return (
       <div className="p-4 text-center text-red-500">
-        Error al cargar los datos: {errorCompra?.message || errorProductos?.message}
+        Error al cargar los datos: {errorCompra?.message || errorProductos?.message || errorProveedores?.message}
       </div>
     );
   }
@@ -67,7 +68,12 @@ export function CompraView() {
 
   const getProductoNombre = (productoId) => {
     const producto = productosData?.productos?.find(p => p.id === productoId.toString());
-    return producto ? `${producto.nombre} - ${producto.unidadMedida.abreviatura}` : `Producto #${productoId}`;
+    return producto ? `${producto.nombre} (${producto.unidadMedida.abreviatura})` : `Producto #${productoId}`;
+  };
+
+  const getProveedorNombre = (proveedorId) => {
+    const proveedor = proveedoresData?.proveedores?.find(p => p.id === parseInt(proveedorId));
+    return proveedor ? proveedor.nombre : `Proveedor #${proveedorId}`;
   };
 
   return (
@@ -97,8 +103,8 @@ export function CompraView() {
                 <dd className="text-sm font-medium">{formatDate(compra.fechaCompra)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-600">Proveedor ID:</dt>
-                <dd className="text-sm font-medium">{compra.proveedorId}</dd>
+                <dt className="text-sm text-gray-600">Proveedor:</dt>
+                <dd className="text-sm font-medium">{getProveedorNombre(compra.proveedorId)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-sm text-gray-600">Total:</dt>

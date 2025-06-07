@@ -187,6 +187,17 @@ export function CompraForm() {
     }
   };
 
+  // Funciones auxiliares para obtener nombres
+  const getNombreProveedor = (id) => {
+    const proveedor = proveedoresData?.proveedores?.find(p => p.id === parseInt(id));
+    return proveedor ? proveedor.nombre : `Proveedor #${id}`;
+  };
+
+  const getNombreProducto = (id) => {
+    const producto = productosData?.productos?.find(p => p.id === parseInt(id));
+    return producto ? `${producto.nombre} (${producto.unidadMedida.abreviatura})` : `Producto #${id}`;
+  };
+
   if (loadingCompra) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -217,22 +228,27 @@ export function CompraForm() {
           <label htmlFor="proveedorId" className="block mb-1 text-sm font-medium text-gray-700">
             Proveedor
           </label>
-          <select
-            id="proveedorId"
-            name="proveedorId"
-            required
-            disabled={isEditing}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-            value={formData.proveedorId}
-            onChange={handleChange}
-          >
-            <option value="">Selecciona un proveedor</option>
-            {proveedoresData?.proveedores?.map((proveedor) => (
-              <option key={proveedor.id} value={proveedor.id}>
-                {proveedor.nombre}
-              </option>
-            ))}
-          </select>
+          {isEditing ? (
+            <div className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm sm:text-base">
+              {getNombreProveedor(formData.proveedorId)}
+            </div>
+          ) : (
+            <select
+              id="proveedorId"
+              name="proveedorId"
+              required
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              value={formData.proveedorId}
+              onChange={handleChange}
+            >
+              <option value="">Selecciona un proveedor</option>
+              {proveedoresData?.proveedores?.map((proveedor) => (
+                <option key={proveedor.id} value={proveedor.id}>
+                  {proveedor.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Almacén (solo en modo edición) */}
@@ -285,7 +301,7 @@ export function CompraForm() {
                     </label>
                     {isEditing ? (
                       <div className="w-full px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm sm:text-base">
-                        {productosData?.productos?.find(p => p.id === detalle.productoId)?.nombre || `Producto #${detalle.productoId}`}
+                        {getNombreProducto(detalle.productoId)}
                       </div>
                     ) : (
                       <select
@@ -297,7 +313,7 @@ export function CompraForm() {
                         <option value="">Selecciona un producto</option>
                         {productosData?.productos?.map((producto) => (
                           <option key={producto.id} value={producto.id}>
-                            {producto.nombre} - {producto.unidadMedida.abreviatura}
+                            {producto.nombre} ({producto.unidadMedida.abreviatura})
                           </option>
                         ))}
                       </select>
