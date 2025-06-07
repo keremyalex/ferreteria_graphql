@@ -22,15 +22,7 @@ const navigation = [
     { id: 4, name: 'Almacenes', href: '/app/almacenes', icon: BuildingStorefrontIcon },
     { id: 5, name: 'Categorías', href: '/app/categorias', icon: TagIcon },
     { id: 6, name: 'Unidades de Medida', href: '/app/unidades-medida', icon: ScaleIcon },
-    {
-        id: 7,
-        name: 'Inventario',
-        icon: ArrowsRightLeftIcon,
-        children: [
-            { id: 71, name: 'Movimientos', href: '/app/movimientos', icon: ArrowsRightLeftIcon },
-            { id: 72, name: 'Todos los Movimientos', href: '/app/movimientos/todos', icon: ArrowsRightLeftIcon }
-        ]
-    },
+    { id: 7, name: 'Inventario', href: '/app/movimientos/todos', icon: ArrowsRightLeftIcon },
     { id: 8, name: 'Ventas', href: '/app/ventas', icon: ShoppingCartIcon },
     { id: 9, name: 'Proveedores', href: '/app/proveedores', icon: TruckIcon },
     { id: 10, name: 'Compras', href: '/app/compras', icon: ShoppingBagIcon }
