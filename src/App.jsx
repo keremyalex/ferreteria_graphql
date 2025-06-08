@@ -8,6 +8,8 @@ import { ToastContainer } from "react-toastify";
 import { Register } from './components/Register';
 import { Dashboard } from './components/Dashboard';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { UsuariosList } from './pages/Usuarios/List';
+import { UsuarioForm } from './pages/Usuarios/Form';
 import ClientesList from './pages/Clientes/List';
 import { ClienteForm } from './pages/Clientes/Form';
 import { ProductosList } from './pages/Productos/List';
@@ -60,6 +62,11 @@ function App() {
                         <Route path="/app/*" element={<ProtectedLayout />}>
                             <Route index element={<Navigate to="/app/dashboard" replace />} />
                             <Route path="dashboard" element={<Dashboard />} />
+                            <Route path="usuarios">
+                                <Route index element={<UsuariosList />} />
+                                <Route path="crear" element={<UsuarioForm />} />
+                                <Route path="editar/:id" element={<UsuarioForm />} />
+                            </Route>
                             <Route path="clientes">
                                 <Route index element={<ClientesList />} />
                                 <Route path="crear" element={<ClienteForm />} />
