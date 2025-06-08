@@ -208,16 +208,8 @@ export const CREAR_VENTA = gql`
 `;
 
 export const ACTUALIZAR_VENTA = gql`
-  mutation ActualizarVenta(
-    $id: Int!
-    $estado: EstadoVenta
-    $metodoPago: MetodoPago
-  ) {
-    actualizarVenta(
-      id: $id
-      estado: $estado
-      metodoPago: $metodoPago
-    ) {
+  mutation ActualizarVenta($id: Int!, $estado: EstadoVenta!) {
+    actualizarVenta(id: $id, estado: $estado) {
       id
       estado
       metodo_pago

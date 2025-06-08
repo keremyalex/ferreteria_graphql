@@ -5,6 +5,8 @@ import { GET_PRODUCTOS } from "../../graphql/productos";
 import { REGISTRAR_MOVIMIENTO } from "../../graphql/inventario";
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { useApolloClient } from "@apollo/client";
+import { REFRESCAR_STOCK } from "../../graphql/inventario";
 
 const DetalleVenta = () => {
     const { id } = useParams();
@@ -26,79 +28,9 @@ const DetalleVenta = () => {
 
     const [actualizarVenta] = useMutation(ACTUALIZAR_VENTA);
     const [registrarMovimiento] = useMutation(REGISTRAR_MOVIMIENTO);
+    const [crearFactura] = useMutation(CREAR_FACTURA);
 
-    const [crearFactura] = useMutation(CREAR_FACTURA, {
-        onCompleted: async (data) => {
-            try {
-                // Primero actualizamos el estado de la venta a COMPLETADA
-                await actualizarVenta({
-                    variables: {
-                        id: parseInt(id),
-                        input: {
-                            estado: "COMPLETADA"
-                        }
-                    }
-                });
-
-                // Después registramos los movimientos de inventario
-                for (const detalle of venta.detalles) {
-                    await registrarMovimiento({
-                        variables: {
-                            input: {
-                                productoId: detalle.producto_id,
-                                tipoMovimiento: "SALIDA",
-                                cantidad: detalle.cantidad,
-                                almacenOrigenId: detalle.almacen_id,
-                                observaciones: `Venta #${id} completada`
-                            }
-                        }
-                    });
-                }
-
-                toast.success("Factura generada y stock actualizado exitosamente");
-                setCreandoFactura(false);
-                refetch();
-
-                // Redirigir a la página de la factura
-                setTimeout(() => {
-                    navigate(`/app/ventas/${id}/factura`);
-                }, 500);
-            } catch (error) {
-                console.error("Error:", error);
-                toast.error("Error al procesar la operación");
-                setCreandoFactura(false);
-            }
-        }
-    });
-
-    const handleEstadoChange = async (nuevoEstado) => {
-        try {
-            await actualizarVenta({
-                variables: {
-                    id: parseInt(id),
-                    estado: nuevoEstado
-                }
-            });
-        } catch (error) {
-            console.error("Error al actualizar el estado:", error);
-        }
-    };
-
-    const handleCrearFactura = async () => {
-        setCreandoFactura(true);
-        try {
-            await crearFactura({
-                variables: {
-                    ventaId: parseInt(id),
-                    montoTotal: data.venta.total
-                }
-            });
-        } catch (error) {
-            console.error("Error al crear factura:", error);
-            toast.error("Error al crear la factura");
-            setCreandoFactura(false);
-        }
-    };
+    const client = useApolloClient();
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -114,6 +46,82 @@ const DetalleVenta = () => {
 
     const venta = data.venta;
     console.log('Detalles de venta:', venta.detalles);
+
+    const handleCrearFactura = async () => {
+        setCreandoFactura(true);
+        try {
+            // Primero actualizamos el estado de la venta a COMPLETADA
+            if (venta.estado !== "COMPLETADA") {
+                await actualizarVenta({
+                    variables: {
+                        id: parseInt(id),
+                        estado: "COMPLETADA",
+                        metodoPago: venta.metodo_pago
+                    }
+                });
+            }
+
+            // Luego creamos la factura
+            await crearFactura({
+                variables: {
+                    ventaId: parseInt(id),
+                    montoTotal: venta.total
+                }
+            });
+
+            // Después registramos los movimientos de inventario
+            for (const detalle of venta.detalles) {
+                console.log("Registrando movimiento para detalle:", detalle);
+                await registrarMovimiento({
+                    variables: {
+                        input: {
+                            productoId: String(detalle.producto_id),
+                            tipoMovimiento: "SALIDA",
+                            cantidad: parseInt(detalle.cantidad),
+                            almacenOrigenId: String(detalle.almacen_id),
+                            observaciones: `Venta #${id} completada`
+                        }
+                    }
+                });
+
+                // Refrescar el stock después de registrar el movimiento
+                await client.query({
+                    query: REFRESCAR_STOCK,
+                    variables: { id: String(detalle.producto_id) },
+                    fetchPolicy: 'network-only'
+                });
+            }
+
+            toast.success("Factura generada y stock actualizado exitosamente");
+            setCreandoFactura(false);
+            refetch();
+
+            // Redirigir a la página de la factura
+            setTimeout(() => {
+                navigate(`/app/ventas/${id}/factura`);
+            }, 500);
+        } catch (error) {
+            console.error("Error:", error);
+            toast.error("Error al procesar la operación");
+            setCreandoFactura(false);
+        }
+    };
+
+    const handleEstadoChange = async (nuevoEstado) => {
+        try {
+            await actualizarVenta({
+                variables: {
+                    id: parseInt(id),
+                    estado: nuevoEstado,
+                    metodoPago: venta.metodo_pago
+                }
+            });
+            refetch();
+        } catch (error) {
+            console.error("Error al actualizar el estado:", error);
+            toast.error("Error al actualizar el estado de la venta");
+        }
+    };
 
     const estadoColorClass = {
         PENDIENTE: "bg-yellow-100 text-yellow-800",
@@ -211,17 +219,7 @@ const DetalleVenta = () => {
                                 Cancelar
                             </button>
                             <button
-                                onClick={async () => {
-                                    if (venta.estado !== "COMPLETADA") {
-                                        await actualizarVenta({
-                                            variables: {
-                                                id: parseInt(id),
-                                                estado: "COMPLETADA"
-                                            }
-                                        });
-                                    }
-                                    handleCrearFactura();
-                                }}
+                                onClick={handleCrearFactura}
                                 className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
                             >
                                 Confirmar
