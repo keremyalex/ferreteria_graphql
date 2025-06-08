@@ -1,20 +1,11 @@
 import { gql } from "@apollo/client";
 
 export const GET_ALMACENES = gql`
-    query {
+    query GetAlmacenes {
         almacenes {
             id
             nombre
             ubicacion
-            stocks {
-                id
-                cantidad
-                producto {
-                    id
-                    nombre
-                }
-                estado
-            }
         }
     }
 `;

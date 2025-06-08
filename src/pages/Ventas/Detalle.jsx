@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@apollo/client";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { GET_VENTA, ACTUALIZAR_VENTA, CREAR_FACTURA, GET_FACTURAS } from "../../graphql/ventas";
 import { GET_PRODUCTOS } from "../../graphql/productos";
+import { REGISTRAR_MOVIMIENTO } from "../../graphql/inventario";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
@@ -24,25 +25,50 @@ const DetalleVenta = () => {
     const productos = productosData?.productos || [];
 
     const [actualizarVenta] = useMutation(ACTUALIZAR_VENTA);
+    const [registrarMovimiento] = useMutation(REGISTRAR_MOVIMIENTO);
+
     const [crearFactura] = useMutation(CREAR_FACTURA, {
-        onCompleted: (data) => {
-            toast.success("Factura creada exitosamente");
-            setCreandoFactura(false);
-            refetch();
-            if (data.crearFactura?.id) {
+        onCompleted: async (data) => {
+            try {
+                // Primero actualizamos el estado de la venta a COMPLETADA
+                await actualizarVenta({
+                    variables: {
+                        id: parseInt(id),
+                        input: {
+                            estado: "COMPLETADA"
+                        }
+                    }
+                });
+
+                // Después registramos los movimientos de inventario
+                for (const detalle of venta.detalles) {
+                    await registrarMovimiento({
+                        variables: {
+                            input: {
+                                productoId: detalle.producto_id,
+                                tipoMovimiento: "SALIDA",
+                                cantidad: detalle.cantidad,
+                                almacenOrigenId: detalle.almacen_id,
+                                observaciones: `Venta #${id} completada`
+                            }
+                        }
+                    });
+                }
+
+                toast.success("Factura generada y stock actualizado exitosamente");
+                setCreandoFactura(false);
+                refetch();
+
+                // Redirigir a la página de la factura
                 setTimeout(() => {
                     navigate(`/app/ventas/${id}/factura`);
                 }, 500);
+            } catch (error) {
+                console.error("Error:", error);
+                toast.error("Error al procesar la operación");
+                setCreandoFactura(false);
             }
-        },
-        onError: (error) => {
-            toast.error(`Error al crear la factura: ${error.message}`);
-            setCreandoFactura(false);
-        },
-        refetchQueries: [
-            { query: GET_VENTA, variables: { id: parseInt(id) } },
-            { query: GET_FACTURAS }
-        ]
+        }
     });
 
     const handleEstadoChange = async (nuevoEstado) => {
@@ -59,6 +85,7 @@ const DetalleVenta = () => {
     };
 
     const handleCrearFactura = async () => {
+        setCreandoFactura(true);
         try {
             await crearFactura({
                 variables: {
@@ -67,7 +94,9 @@ const DetalleVenta = () => {
                 }
             });
         } catch (error) {
-            console.error("Error al crear la factura:", error);
+            console.error("Error al crear factura:", error);
+            toast.error("Error al crear la factura");
+            setCreandoFactura(false);
         }
     };
 
