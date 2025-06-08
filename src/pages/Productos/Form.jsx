@@ -97,13 +97,13 @@ export function ProductoForm() {
         await updateProducto({
           variables: {
             id: numericId,
-            updateProductoInput: input
+            input: input
           }
         });
       } else {
         await createProducto({
           variables: {
-            createProductoInput: input
+            input: input
           }
         });
       }
@@ -123,23 +123,23 @@ export function ProductoForm() {
 
   if (loadingProducto) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+    <div className="p-6 bg-white rounded-lg shadow">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900">
         {isEditing ? 'Editar Producto' : 'Nuevo Producto'}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Nombre */}
           <div>
-            <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nombre" className="block mb-1 text-sm font-medium text-gray-700">
               Nombre
             </label>
             <input
@@ -156,7 +156,7 @@ export function ProductoForm() {
 
           {/* Precio */}
           <div>
-            <label htmlFor="precio" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="precio" className="block mb-1 text-sm font-medium text-gray-700">
               Precio
             </label>
             <input
@@ -175,14 +175,14 @@ export function ProductoForm() {
 
           {/* Categoría */}
           <div>
-            <label htmlFor="categoriaId" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="categoriaId" className="block mb-1 text-sm font-medium text-gray-700">
               Categoría
             </label>
             <select
               id="categoriaId"
               name="categoriaId"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               value={formData.categoriaId}
               onChange={handleChange}
             >
@@ -197,14 +197,14 @@ export function ProductoForm() {
 
           {/* Unidad de Medida */}
           <div>
-            <label htmlFor="unidadMedidaId" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="unidadMedidaId" className="block mb-1 text-sm font-medium text-gray-700">
               Unidad de Medida
             </label>
             <select
               id="unidadMedidaId"
               name="unidadMedidaId"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               value={formData.unidadMedidaId}
               onChange={handleChange}
             >
@@ -219,14 +219,14 @@ export function ProductoForm() {
 
           {/* Almacén */}
           <div>
-            <label htmlFor="almacenId" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="almacenId" className="block mb-1 text-sm font-medium text-gray-700">
               Almacén
             </label>
             <select
               id="almacenId"
               name="almacenId"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               value={formData.almacenId}
               onChange={handleChange}
             >
@@ -241,7 +241,7 @@ export function ProductoForm() {
 
           {/* Cantidad */}
           <div>
-            <label htmlFor="cantidad" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="cantidad" className="block mb-1 text-sm font-medium text-gray-700">
               Cantidad en Stock
             </label>
             <input
@@ -259,7 +259,7 @@ export function ProductoForm() {
 
           {/* URL de la Imagen */}
           <div>
-            <label htmlFor="urlImagen" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="urlImagen" className="block mb-1 text-sm font-medium text-gray-700">
               URL de la Imagen
             </label>
             <input
@@ -275,7 +275,7 @@ export function ProductoForm() {
 
           {/* Descripción - Span completo */}
           <div className="md:col-span-2">
-            <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="descripcion" className="block mb-1 text-sm font-medium text-gray-700">
               Descripción
             </label>
             <textarea
@@ -294,14 +294,14 @@ export function ProductoForm() {
           <button
             type="button"
             onClick={() => navigate('/app/productos')}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loadingCreate || loadingUpdate}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {loadingCreate || loadingUpdate ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
           </button>
