@@ -43,15 +43,15 @@ export function AlmacenesList() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-red-500 text-center">
+      <div className="text-center text-red-500">
         Error al cargar los almacenes: {error.message}
       </div>
     );
@@ -82,13 +82,13 @@ export function AlmacenesList() {
   return (
     <>
       <Card>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center justify-between mb-6">
           <Title>Gestión de Almacenes</Title>
           <Link 
             to="/app/almacenes/crear"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
           >
-            <PlusIcon className="h-5 w-5" />
+            <PlusIcon className="w-5 h-5" />
             Nuevo Almacén
           </Link>
         </div>
@@ -119,26 +119,26 @@ export function AlmacenesList() {
                 <TableCell>
                   <button
                     onClick={() => handleShowStock(almacen)}
-                    className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                    className="inline-flex items-center px-3 py-1 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                   >
-                    <ClipboardDocumentListIcon className="h-4 w-4 mr-1" />
-                    Ver Stock ({almacen.stocks.length})
+                    <ClipboardDocumentListIcon className="w-4 h-4 mr-1" />
+                    Ver Stock ({almacen.stocks?.length || 0})
                   </button>
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
                     <Link 
                       to={`/app/almacenes/editar/${almacen.id}`}
-                      className="px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 flex items-center gap-1"
+                      className="flex items-center gap-1 px-3 py-1 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                     >
-                      <PencilIcon className="h-4 w-4" />
+                      <PencilIcon className="w-4 h-4" />
                       Editar
                     </Link>
                     <button 
                       onClick={() => handleDelete(almacen.id)}
-                      className="px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 flex items-center gap-1"
+                      className="flex items-center gap-1 px-3 py-1 text-red-600 bg-red-100 rounded hover:bg-red-200"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <TrashIcon className="w-4 h-4" />
                       Eliminar
                     </button>
                   </div>
@@ -156,7 +156,7 @@ export function AlmacenesList() {
       >
         <div className="space-y-4">
           {selectedAlmacen?.stocks.length === 0 ? (
-            <p className="text-gray-500 italic text-center">No hay productos en stock en este almacén</p>
+            <p className="italic text-center text-gray-500">No hay productos en stock en este almacén</p>
           ) : (
             <div className="divide-y divide-gray-200">
               {selectedAlmacen?.stocks.map(stock => (

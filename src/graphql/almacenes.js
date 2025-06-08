@@ -6,6 +6,15 @@ export const GET_ALMACENES = gql`
             id
             nombre
             ubicacion
+            stocks {
+                id
+                cantidad
+                producto {
+                    id
+                    nombre
+                }
+                estado
+            }
         }
     }
 `;
