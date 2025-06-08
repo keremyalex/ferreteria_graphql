@@ -4,10 +4,11 @@ import { client } from "./apollo/client";
 import { Login } from './components/Login';
 import { LandingPage } from './components/LandingPage';
 import { ProtectedLayout } from './components/ProtectedLayout';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastContainer } from "react-toastify";
 import { Register } from './components/Register';
 import { Dashboard } from './components/Dashboard';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth, ROLES } from './context/AuthContext';
 import { UsuariosList } from './pages/Usuarios/List';
 import { UsuarioForm } from './pages/Usuarios/Form';
 import ClientesList from './pages/Clientes/List';
@@ -63,9 +64,30 @@ function App() {
                             <Route index element={<Navigate to="/app/dashboard" replace />} />
                             <Route path="dashboard" element={<Dashboard />} />
                             <Route path="usuarios">
-                                <Route index element={<UsuariosList />} />
-                                <Route path="crear" element={<UsuarioForm />} />
-                                <Route path="editar/:id" element={<UsuarioForm />} />
+                                <Route index element={
+                                    <ProtectedRoute 
+                                        requiredPermission="USUARIOS"
+                                        requiredAction="VIEW"
+                                    >
+                                        <UsuariosList />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="crear" element={
+                                    <ProtectedRoute 
+                                        requiredPermission="USUARIOS"
+                                        requiredAction="CREATE"
+                                    >
+                                        <UsuarioForm />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="editar/:id" element={
+                                    <ProtectedRoute 
+                                        requiredPermission="USUARIOS"
+                                        requiredAction="EDIT"
+                                    >
+                                        <UsuarioForm />
+                                    </ProtectedRoute>
+                                } />
                             </Route>
                             <Route path="clientes">
                                 <Route index element={<ClientesList />} />
@@ -73,9 +95,30 @@ function App() {
                                 <Route path="editar/:id" element={<ClienteForm />} />
                             </Route>
                             <Route path="productos">
-                                <Route index element={<ProductosList />} />
-                                <Route path="crear" element={<ProductoForm />} />
-                                <Route path="editar/:id" element={<ProductoForm />} />
+                                <Route index element={
+                                    <ProtectedRoute 
+                                        requiredPermission="PRODUCTOS"
+                                        requiredAction="VIEW"
+                                    >
+                                        <ProductosList />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="crear" element={
+                                    <ProtectedRoute 
+                                        requiredPermission="PRODUCTOS"
+                                        requiredAction="CREATE"
+                                    >
+                                        <ProductoForm />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="editar/:id" element={
+                                    <ProtectedRoute 
+                                        requiredPermission="PRODUCTOS"
+                                        requiredAction="EDIT"
+                                    >
+                                        <ProductoForm />
+                                    </ProtectedRoute>
+                                } />
                             </Route>
                             <Route path="almacenes">
                                 <Route index element={<AlmacenesList />} />

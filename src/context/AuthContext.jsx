@@ -1,59 +1,156 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useQuery } from '@apollo/client';
-import { ME_QUERY } from '../graphql/auth';
+import { useQuery, useMutation, gql } from '@apollo/client';
 
-const AuthContext = createContext();
+const ME_QUERY = gql`
+  query Me {
+    me {
+      id
+      email
+      role
+    }
+  }
+`;
 
-export function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const LOGIN_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password)
+  }
+`;
+
+const AuthContext = createContext(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe usarse dentro de un AuthProvider');
+  }
+  return context;
+};
+
+export const ROLES = {
+  ADMIN: 'ADMIN',
+  VENDEDOR: 'VENDEDOR',
+  ALMACENISTA: 'ALMACENISTA'
+};
+
+export const PERMISSIONS = {
+  USUARIOS: {
+    VIEW: [ROLES.ADMIN],
+    CREATE: [ROLES.ADMIN],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  },
+  PRODUCTOS: {
+    VIEW: [ROLES.ADMIN, ROLES.VENDEDOR, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    EDIT: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    DELETE: [ROLES.ADMIN]
+  },
+  VENTAS: {
+    VIEW: [ROLES.ADMIN, ROLES.VENDEDOR],
+    CREATE: [ROLES.ADMIN, ROLES.VENDEDOR],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  },
+  INVENTARIO: {
+    VIEW: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    EDIT: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    DELETE: [ROLES.ADMIN]
+  },
+  CLIENTES: {
+    VIEW: [ROLES.ADMIN, ROLES.VENDEDOR],
+    CREATE: [ROLES.ADMIN, ROLES.VENDEDOR],
+    EDIT: [ROLES.ADMIN, ROLES.VENDEDOR],
+    DELETE: [ROLES.ADMIN]
+  },
+  ALMACENES: {
+    VIEW: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  },
+  CATEGORIAS: {
+    VIEW: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  },
+  UNIDADES_MEDIDA: {
+    VIEW: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  },
+  PROVEEDORES: {
+    VIEW: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  },
+  COMPRAS: {
+    VIEW: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    CREATE: [ROLES.ADMIN, ROLES.ALMACENISTA],
+    EDIT: [ROLES.ADMIN],
+    DELETE: [ROLES.ADMIN]
+  }
+};
+
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const { data, error, refetch } = useQuery(ME_QUERY, {
-    skip: !localStorage.getItem('token'),
+  const { data, loading, refetch } = useQuery(ME_QUERY, {
+    skip: !localStorage.getItem('token')
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      if (data?.me) {
-        setUser(data.me);
-        setIsAuthenticated(true);
-      } else if (error) {
-        localStorage.removeItem('token');
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-    } else {
-      setIsAuthenticated(false);
-      setUser(null);
-    }
-    setLoading(false);
-  }, [data, error]);
+  const [loginMutation] = useMutation(LOGIN_MUTATION);
 
-  const login = (token) => {
+  useEffect(() => {
+    if (data?.me) {
+      setUser(data.me);
+    }
+  }, [data]);
+
+  const login = async (token) => {
     localStorage.setItem('token', token);
-    setIsAuthenticated(true);
-    refetch();
+    await refetch();
+  };
+
+  const hasPermission = (permission, action) => {
+    if (!user) return false;
+    
+    // El ADMIN tiene acceso total a todo
+    if (user.role === ROLES.ADMIN) return true;
+    
+    return PERMISSIONS[permission]?.[action]?.includes(user.role) || false;
+  };
+
+  const hasRole = (roles) => {
+    if (!user) return false;
+    // El ADMIN siempre tiene acceso
+    if (user.role === ROLES.ADMIN) return true;
+    
+    if (Array.isArray(roles)) {
+      return roles.includes(user.role);
+    }
+    return user.role === roles;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    setIsAuthenticated(false);
     setUser(null);
+    window.location.href = '/login';
   };
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  const value = {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    hasPermission,
+    hasRole,
+    loginMutation
+  };
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-} 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}; 
