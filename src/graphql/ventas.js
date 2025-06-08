@@ -179,8 +179,8 @@ export const CREAR_VENTA = gql`
     $clienteId: Int!
     $vendedorId: String!
     $total: Float!
-    $estado: EstadoVenta
-    $metodoPago: MetodoPago
+    $estado: EstadoVenta!
+    $metodoPago: MetodoPago!
   ) {
     crearVenta(
       clienteId: $clienteId
@@ -194,6 +194,11 @@ export const CREAR_VENTA = gql`
       total
       estado
       metodo_pago
+      cliente {
+        id
+        nombre
+        apellido
+      }
       vendedor_id
       vendedor {
         id

@@ -4,12 +4,13 @@ import { CREAR_VENTA, CREAR_DETALLE_VENTA, GET_CLIENTES, GET_PRODUCTOS } from ".
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Select from 'react-select/async';
+import { toast } from "react-toastify";
 
 const NuevaVenta = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [clienteId, setClienteId] = useState("");
-    const [metodoPago, setMetodoPago] = useState("EFECTIVO");
+    const [metodoPago, setMetodoPago] = useState("");
     const [detalles, setDetalles] = useState([
         { productoId: "", productoNombre: "", cantidad: 1, precioUnitario: 0 }
     ]);
@@ -20,10 +21,17 @@ const NuevaVenta = () => {
     const clientes = clientesData?.clientes || [];
     const productos = productosData?.productos || [];
 
+    const [crearDetalleVenta] = useMutation(CREAR_DETALLE_VENTA, {
+        onError: (error) => {
+            console.error("Error al crear detalle de venta:", error);
+            toast.error(`Error al crear detalle: ${error.message}`);
+        }
+    });
+
     const [crearVenta] = useMutation(CREAR_VENTA, {
         onCompleted: async (data) => {
-            // Crear los detalles de la venta
             try {
+                // Crear los detalles de la venta
                 for (const detalle of detalles) {
                     if (detalle.productoId && detalle.cantidad > 0) {
                         await crearDetalleVenta({
@@ -36,19 +44,16 @@ const NuevaVenta = () => {
                         });
                     }
                 }
+                toast.success("Venta creada exitosamente");
                 navigate(`/app/ventas/${data.crearVenta.id}`);
             } catch (error) {
                 console.error("Error al crear los detalles de la venta:", error);
+                toast.error(`Error al crear los detalles: ${error.message}`);
             }
         },
         onError: (error) => {
             console.error("Error al crear la venta:", error);
-        }
-    });
-
-    const [crearDetalleVenta] = useMutation(CREAR_DETALLE_VENTA, {
-        onError: (error) => {
-            console.error("Error al crear detalle de venta:", error);
+            toast.error(`Error al crear la venta: ${error.message}`);
         }
     });
 
@@ -86,23 +91,33 @@ const NuevaVenta = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
+        if (!clienteId || !metodoPago) {
+            toast.error("Por favor complete todos los campos requeridos");
+            return;
+        }
+
         // Calcular el total de la venta
         const total = detalles.reduce((sum, detalle) => {
             return sum + (Number(detalle.cantidad) * Number(detalle.precioUnitario));
         }, 0);
 
+        console.log('Método de pago seleccionado:', metodoPago);
+        const variables = {
+            clienteId: Number(clienteId),
+            vendedorId: user.id,
+            total: Number(total),
+            estado: "PENDIENTE",
+            metodoPago: metodoPago
+        };
+        console.log('Variables de la mutación:', variables);
+
         try {
             await crearVenta({
-                variables: {
-                    clienteId: Number(clienteId),
-                    vendedorId: user.id,
-                    total: Number(total),
-                    estado: "PENDIENTE",
-                    metodoPago
-                }
+                variables: variables
             });
         } catch (error) {
             console.error("Error al crear la venta:", error);
+            toast.error(`Error al crear la venta: ${error.message}`);
         }
     };
 
@@ -192,9 +207,14 @@ const NuevaVenta = () => {
                         </label>
                         <select
                             value={metodoPago}
-                            onChange={(e) => setMetodoPago(e.target.value)}
+                            onChange={(e) => {
+                                console.log('Método de pago cambiado a:', e.target.value);
+                                setMetodoPago(e.target.value);
+                            }}
                             className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
                         >
+                            <option value="">Seleccionar método de pago...</option>
                             <option value="EFECTIVO">Efectivo</option>
                             <option value="TARJETA">Tarjeta</option>
                             <option value="TRANSFERENCIA">Transferencia</option>
@@ -274,7 +294,7 @@ const NuevaVenta = () => {
                         </div>
                     ))}
                     
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                         <button
                             type="button"
                             onClick={addDetalle}
