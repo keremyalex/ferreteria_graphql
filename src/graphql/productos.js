@@ -30,8 +30,7 @@ export const GET_PRODUCTOS = gql`
     }
 `;
 
-export const GET_PRODUCTO = gql`
-    query GetProducto($id: ID!) {
+export const GET_PRODUCTO = gql`    query GetProducto($id: ID!) {
         producto(id: $id) {
             id
             nombre

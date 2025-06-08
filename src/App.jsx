@@ -26,6 +26,11 @@ import { ProveedorForm } from './pages/Proveedores/Form';
 import { ComprasList } from './pages/Compras/List';
 import { CompraForm } from './pages/Compras/Form';
 import { CompraView } from './pages/Compras/View';
+import VentasList from './pages/Ventas/List';
+import NuevaVenta from './pages/Ventas/Nueva';
+import DetalleVenta from './pages/Ventas/Detalle';
+import Factura from './pages/Ventas/Factura';
+import VerFactura from './pages/Facturas/Ver';
 
 // Componente para manejar la redirección de la ruta raíz
 function RootRoute() {
@@ -97,6 +102,13 @@ function App() {
                                 <Route path="editar/:id" element={<CompraForm />} />
                                 <Route path="ver/:id" element={<CompraView />} />
                             </Route>
+                            <Route path="ventas">
+                                <Route index element={<VentasList />} />
+                                <Route path="nueva" element={<NuevaVenta />} />
+                                <Route path=":id" element={<DetalleVenta />} />
+                                <Route path=":id/factura" element={<Factura />} />
+                            </Route>
+                            <Route path="facturas/:id" element={<VerFactura />} />
                         </Route>
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
