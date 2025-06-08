@@ -152,20 +152,21 @@ const DetalleVenta = () => {
                     </p>
                 </div>
                 <div className="flex gap-4">
-                    {facturaExistente ? (
-                        <Link
-                            to={`/app/ventas/${venta.id}/factura`}
-                            className="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700"
-                        >
-                            Ver Factura #{facturaExistente.numero}
-                        </Link>
-                    ) : (
+                    {venta.estado === "PENDIENTE" && !facturaExistente && (
                         <button
                             onClick={() => setCreandoFactura(true)}
                             className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
                         >
                             Generar Factura
                         </button>
+                    )}
+                    {facturaExistente && (
+                        <Link
+                            to={`/app/ventas/${venta.id}/factura`}
+                            className="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700"
+                        >
+                            Ver Factura #{facturaExistente.numero}
+                        </Link>
                     )}
                     <Link
                         to="/app/ventas"

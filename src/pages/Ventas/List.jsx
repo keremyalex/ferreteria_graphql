@@ -72,12 +72,14 @@ const VentasList = () => {
                         >
                             Ver Detalles
                         </Link>
-                        <Link
-                            to={`/app/ventas/${row.original.id}/factura`}
-                            className="px-2 py-1 text-xs text-green-600 border border-green-600 rounded hover:bg-green-50"
-                        >
-                            Factura
-                        </Link>
+                        {row.original.estado === "COMPLETADA" && (
+                            <Link
+                                to={`/app/ventas/${row.original.id}/factura`}
+                                className="px-2 py-1 text-xs text-green-600 border border-green-600 rounded hover:bg-green-50"
+                            >
+                                Factura
+                            </Link>
+                        )}
                     </div>
                 ),
             },
