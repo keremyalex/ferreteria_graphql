@@ -68,19 +68,35 @@ export const Dashboard = () => {
         .filter(mov => mov && mov.fecha && mov.producto)
         .filter(mov => compararFechas(mov.fecha, dateRange.from, dateRange.to) && mov.estado === 'ACTIVO');
 
+      // Agrupar entradas y salidas por fecha
+      const movimientosEntrada = movimientosFiltrados.filter(mov => mov.tipoMovimiento === 'ENTRADA');
+      const movimientosSalida = movimientosFiltrados.filter(mov => mov.tipoMovimiento === 'SALIDA');
+
+      const entradasPorDia = agruparPorFecha(movimientosEntrada.map(mov => ({
+        ...mov,
+        cantidad: Math.abs(Number(mov.cantidad))
+      })));
+      const salidasPorDia = agruparPorFecha(movimientosSalida.map(mov => ({
+        ...mov,
+        cantidad: Math.abs(Number(mov.cantidad))
+      })));
+
       // Datos para gráfico de movimientos por día
-      const movimientosPorDia = agruparPorFecha(movimientosFiltrados);
+      const movimientosPorDia = agruparPorFecha(movimientosFiltrados.map(mov => ({
+        ...mov,
+        cantidad: mov.tipoMovimiento === 'SALIDA' ? -Number(mov.cantidad) : Number(mov.cantidad)
+      })));
 
       // Productos más movidos (todos los movimientos)
       const productosPopulares = movimientosFiltrados
         .reduce((acc, mov) => {
           const existente = acc.find(p => p.producto === mov.producto.nombre);
           if (existente) {
-            existente.cantidad += Number(mov.cantidad) || 0;
+            existente.cantidad += Math.abs(Number(mov.cantidad)) || 0;
           } else {
             acc.push({
               producto: mov.producto.nombre,
-              cantidad: Number(mov.cantidad) || 0
+              cantidad: Math.abs(Number(mov.cantidad)) || 0
             });
           }
           return acc;
@@ -89,22 +105,25 @@ export const Dashboard = () => {
         .slice(0, 5);
 
       // Productos más vendidos (solo salidas)
-      const movimientosSalida = movimientosFiltrados
-        .filter(mov => mov.tipoMovimiento === 'SALIDA');
-      
       const productosMasVendidos = movimientosSalida
         .reduce((acc, mov) => {
+          const cantidad = Math.round(Number(mov.cantidad)) || 0;
+          if (cantidad <= 0) return acc; // Ignorar movimientos con cantidad 0 o negativa
+          
           const existente = acc.find(p => p.producto === mov.producto.nombre);
           if (existente) {
-            existente.cantidad += Number(mov.cantidad) || 0;
+            existente.cantidad += cantidad;
+            existente.valor += (cantidad * Number(mov.producto.precio)) || 0;
           } else {
             acc.push({
               producto: mov.producto.nombre,
-              cantidad: Number(mov.cantidad) || 0
+              cantidad: cantidad,
+              valor: (cantidad * Number(mov.producto.precio)) || 0
             });
           }
           return acc;
         }, [])
+        .filter(item => item.cantidad > 0) // Filtrar productos con cantidad mayor a 0
         .sort((a, b) => b.cantidad - a.cantidad)
         .slice(0, 5);
 
@@ -117,7 +136,8 @@ export const Dashboard = () => {
           }, 0);
           return {
             nombre: producto.nombre,
-            stock: stockTotal
+            stock: stockTotal,
+            valor: stockTotal * (Number(producto.precio) || 0)
           };
         })
         .filter(producto => producto.stock < 10)
@@ -133,7 +153,7 @@ export const Dashboard = () => {
           const stockTotal = producto.stocks.reduce((sum, stock) => {
             return sum + (Number(stock?.cantidad) || 0);
           }, 0);
-          return total + (stockTotal * Number(producto.precio));
+          return total + (stockTotal * (Number(producto.precio) || 0));
         }, 0);
 
       return {
@@ -143,7 +163,9 @@ export const Dashboard = () => {
         stockBajo,
         totalMovimientos,
         totalProductos,
-        valorInventario
+        valorInventario,
+        entradasPorDia,
+        salidasPorDia
       };
     } catch (error) {
       console.error('Error procesando datos:', error);
@@ -187,7 +209,7 @@ export const Dashboard = () => {
               <Card decoration="top" decorationColor="blue">
                 <Title>Valor del Inventario</Title>
                 <Text className="mt-4 text-2xl font-bold">
-                  ${datos.valorInventario.toFixed(2)}
+                  Bs. {datos.valorInventario.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Text>
               </Card>
               <Card decoration="top" decorationColor="green">
@@ -204,51 +226,6 @@ export const Dashboard = () => {
               </Card>
             </Grid>
 
-            <div className="mt-6">
-              <Card>
-                <Title>Productos Más Movidos</Title>
-                {datos.productosPopulares.length > 0 ? (
-                  <BarChart
-                    className="mt-4 h-80"
-                    data={datos.productosPopulares}
-                    index="producto"
-                    categories={["cantidad"]}
-                    colors={["blue"]}
-                    yAxisWidth={48}
-                  />
-                ) : (
-                  <Text className="mt-4 text-center text-gray-500">
-                    No hay datos de movimientos en el período seleccionado
-                  </Text>
-                )}
-              </Card>
-            </div>
-          </TabPanel>
-
-          <TabPanel>
-            <div className="mt-6">
-              <Card>
-                <Title>Tendencia de Movimientos</Title>
-                {datos.movimientosPorDia.length > 0 ? (
-                  <LineChart
-                    className="mt-4 h-80"
-                    data={datos.movimientosPorDia}
-                    index="fecha"
-                    categories={["cantidad"]}
-                    colors={["blue"]}
-                    valueFormatter={(value) => value.toFixed(0)}
-                    yAxisWidth={60}
-                  />
-                ) : (
-                  <Text className="mt-4 text-center text-gray-500">
-                    No hay movimientos registrados en el período seleccionado
-                  </Text>
-                )}
-              </Card>
-            </div>
-          </TabPanel>
-
-          <TabPanel>
             <Grid numItems={1} numItemsSm={2} className="gap-6 mt-6">
               <Card>
                 <Title>Productos con Stock Bajo</Title>
@@ -278,6 +255,10 @@ export const Dashboard = () => {
                     categories={["cantidad"]}
                     colors={["green"]}
                     yAxisWidth={48}
+                    valueFormatter={(value) => Math.round(value).toString()}
+                    minValue={0}
+                    maxValue={Math.max(...datos.productosMasVendidos.map(item => item.cantidad), 1)+2}
+                    yAxisTickFormatter={(value) => Math.round(value).toString()}
                   />
                 ) : (
                   <Text className="mt-4 text-center text-gray-500">
@@ -286,6 +267,74 @@ export const Dashboard = () => {
                 )}
               </Card>
             </Grid>
+          </TabPanel>
+
+          <TabPanel>
+            <Grid numItems={1} numItemsSm={2} numItemsLg={3} className="gap-6 mt-6">
+              <Card>
+                <Title>Productos Más Movidos</Title>
+                {datos.productosPopulares.length > 0 ? (
+                  <BarChart
+                    className="mt-4 h-80"
+                    data={datos.productosPopulares}
+                    index="producto"
+                    categories={["cantidad"]}
+                    colors={["blue"]}
+                    yAxisWidth={48}
+                    valueFormatter={(value) => Math.round(value).toString()}
+                  />
+                ) : (
+                  <Text className="mt-4 text-center text-gray-500">
+                    No hay datos de movimientos en el período seleccionado
+                  </Text>
+                )}
+              </Card>
+            </Grid>
+          </TabPanel>
+
+          <TabPanel>
+            <div className="mt-6">
+              <Card>
+                <Title>Tendencia de Entradas</Title>
+                {datos.entradasPorDia.length > 0 ? (
+                  <LineChart
+                    className="mt-4 h-80"
+                    data={datos.entradasPorDia}
+                    index="fecha"
+                    categories={["cantidad"]}
+                    colors={["blue"]}
+                    valueFormatter={(value) => Math.round(value).toString()}
+                    yAxisWidth={60}
+                    minValue={0}
+                  />
+                ) : (
+                  <Text className="mt-4 text-center text-gray-500">
+                    No hay movimientos de entrada registrados en el período seleccionado
+                  </Text>
+                )}
+              </Card>
+            </div>
+            <div className="mt-6">
+              <Card>
+                <Title>Tendencia de Salidas</Title>
+                {datos.salidasPorDia.length > 0 ? (
+                  <LineChart
+                    className="mt-4 h-80"
+                    data={datos.salidasPorDia}
+                    index="fecha"
+                    categories={["cantidad"]}
+                    colors={["red"]}
+                    valueFormatter={(value) => Math.round(value).toString()}
+                    yAxisWidth={60}
+                    minValue={0}
+                  />
+                ) : (
+                  <Text className="mt-4 text-center text-gray-500">
+                    No hay movimientos de salida registrados en el período seleccionado
+                  </Text>
+                )}
+              </Card>
+            </div>
           </TabPanel>
         </TabPanels>
       </TabGroup>

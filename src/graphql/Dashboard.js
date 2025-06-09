@@ -5,6 +5,7 @@ export const GET_DASHBOARD_DATA = gql`
     productos {
       id
       nombre
+      precio
       stocks {
         id
         cantidad
@@ -21,7 +22,17 @@ export const GET_DASHBOARD_DATA = gql`
       tipoMovimiento
       cantidad
       estado
+      observaciones
       producto {
+        id
+        nombre
+        precio
+      }
+      almacenOrigen {
+        id
+        nombre
+      }
+      almacenDestino {
         id
         nombre
       }
