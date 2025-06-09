@@ -279,7 +279,7 @@ const NuevaVenta = () => {
             ...newDetalles[index],
             productoId: selectedOption.value,
             productoNombre: selectedOption.label,
-            precioUnitario: 0, // Inicializar en 0, se debe establecer manualmente
+            precioUnitario: producto.precio, // Usar el precio base del producto
             almacenId: "",
             almacenNombre: "",
             stockDisponible: 0,
