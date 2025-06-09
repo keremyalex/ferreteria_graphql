@@ -5,7 +5,6 @@ export const GET_DASHBOARD_DATA = gql`
     productos {
       id
       nombre
-      precio
       stocks {
         id
         cantidad

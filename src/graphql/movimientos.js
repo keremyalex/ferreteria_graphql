@@ -77,8 +77,8 @@ export const GET_MOVIMIENTO = gql`
   }
 `;
 
-export const CREATE_MOVIMIENTO = gql`
-  mutation CreateMovimiento($input: MovimientoInput!) {
+export const REGISTRAR_MOVIMIENTO = gql`
+  mutation RegistrarMovimiento($input: MovimientoInput!) {
     registrarMovimiento(input: $input) {
       id
       fecha

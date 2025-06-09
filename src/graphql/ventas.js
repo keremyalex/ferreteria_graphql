@@ -154,7 +154,6 @@ export const GET_PRODUCTOS = gql`
       id
       nombre
       descripcion
-      precio
     }
   }
 `;

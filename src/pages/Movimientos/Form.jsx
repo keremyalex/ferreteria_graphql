@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
-import { CREATE_MOVIMIENTO, GET_TODOS_MOVIMIENTOS } from '../../graphql/movimientos';
+import { REGISTRAR_MOVIMIENTO, GET_TODOS_MOVIMIENTOS } from '../../graphql/movimientos';
 import { GET_PRODUCTOS } from '../../graphql/productos';
 import { GET_ALMACENES } from '../../graphql/almacenes';
 import { toast } from 'react-toastify';
@@ -36,7 +36,7 @@ export function MovimientoForm() {
     const { data: productosData, loading: loadingProductos } = useQuery(GET_PRODUCTOS);
     const { data: almacenesData, loading: loadingAlmacenes } = useQuery(GET_ALMACENES);
 
-    const [registrarMovimiento] = useMutation(CREATE_MOVIMIENTO, {
+    const [registrarMovimiento] = useMutation(REGISTRAR_MOVIMIENTO, {
         onCompleted: () => {
             toast.success('Movimiento registrado correctamente');
             navigate('/app/movimientos/todos');

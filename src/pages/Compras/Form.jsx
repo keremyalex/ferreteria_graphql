@@ -9,7 +9,7 @@ import {
   GET_PROVEEDORES,
   REGISTRAR_MOVIMIENTO 
 } from '../../graphql/proveedores';
-import { GET_PRODUCTOS } from '../../graphql/productos';
+import { GET_PRODUCTOS, UPDATE_PRODUCTO_PRECIO } from '../../graphql/productos';
 import { GET_ALMACENES } from '../../graphql/almacenes';
 import { toast } from 'react-toastify';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -71,6 +71,12 @@ export function CompraForm() {
     }
   });
 
+  const [actualizarPrecioProducto] = useMutation(UPDATE_PRODUCTO_PRECIO, {
+    onError: (error) => {
+      toast.error(`Error al actualizar el precio del producto: ${error.message}`);
+    }
+  });
+
   useEffect(() => {
     if (isEditing && compraData?.compra?.compra) {
       const { proveedorId, detalles } = compraData.compra.compra;
@@ -124,7 +130,7 @@ export function CompraForm() {
         proveedorId: parseInt(formData.proveedorId),
         detalles: formData.detalles.map(detalle => ({
           productoId: parseInt(detalle.productoId),
-          cantidad: parseInt(detalle.cantidad),
+          cantidad: parseFloat(detalle.cantidad),
           precioUnitario: parseFloat(detalle.precioUnitario)
         }))
       };
@@ -155,6 +161,15 @@ export function CompraForm() {
                 almacenDestinoId: formData.almacenId,
                 observaciones: `Ingreso por compra #${id}`
               }
+            }
+          });
+
+          // Actualizar el precio de venta del producto (precio unitario + 30%)
+          const precioVenta = parseFloat(detalle.precioUnitario) * 1.30;
+          await actualizarPrecioProducto({
+            variables: {
+              id: detalle.productoId,
+              precio: precioVenta
             }
           });
         }
@@ -194,8 +209,19 @@ export function CompraForm() {
   };
 
   const getNombreProducto = (id) => {
-    const producto = productosData?.productos?.find(p => p.id === parseInt(id));
-    return producto ? `${producto.nombre} (${producto.unidadMedida.abreviatura})` : `Producto #${id}`;
+    if (!id || !productosData?.productos) return `Producto #${id}`;
+    
+    // Convertir el ID a número para la comparación
+    const productoId = parseInt(id);
+    const producto = productosData.productos.find(p => parseInt(p.id) === productoId);
+    
+    if (!producto) {
+      console.log('Producto no encontrado:', id);
+      console.log('Productos disponibles:', productosData.productos);
+      return `Producto #${id}`;
+    }
+    
+    return `${producto.nombre} (${producto.unidadMedida?.abreviatura || 'N/A'})`;
   };
 
   if (loadingCompra) {

@@ -17,14 +17,6 @@ import {
 import { PencilIcon, TrashIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import TextInput from '../../components/TextInput';
 
-const formatPrecio = (precio) => {
-  return new Intl.NumberFormat('es-BO', {
-    style: 'currency',
-    currency: 'BOB',
-    minimumFractionDigits: 2
-  }).format(precio);
-};
-
 const getStockTotal = (stocks) => {
   return stocks.reduce((total, stock) => total + stock.cantidad, 0);
 };
@@ -60,15 +52,15 @@ export function ProductosList() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-red-500 text-center">
+      <div className="p-4 text-center text-red-500">
         Error al cargar los productos: {error.message}
       </div>
     );
@@ -95,13 +87,13 @@ export function ProductosList() {
 
   return (
     <Card>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <Title>Gestión de Productos</Title>
         <Link 
           to="/app/productos/crear"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
         >
-          <PlusIcon className="h-5 w-5" />
+          <PlusIcon className="w-5 h-5" />
           Nuevo Producto
         </Link>
       </div>
@@ -120,9 +112,9 @@ export function ProductosList() {
           <TableRow>
             <TableHeaderCell>Nombre</TableHeaderCell>
             <TableHeaderCell>Descripción</TableHeaderCell>
-            <TableHeaderCell>Precio</TableHeaderCell>
             <TableHeaderCell>Categoría</TableHeaderCell>
             <TableHeaderCell>Unidad</TableHeaderCell>
+            <TableHeaderCell>Precio</TableHeaderCell>
             <TableHeaderCell>Stock</TableHeaderCell>
             <TableHeaderCell>Acciones</TableHeaderCell>
           </TableRow>
@@ -136,14 +128,13 @@ export function ProductosList() {
                     <img 
                       src={producto.urlImagen} 
                       alt={producto.nombre}
-                      className="w-10 h-10 object-cover rounded"
+                      className="object-cover w-10 h-10 rounded"
                     />
                   )}
                   <span>{producto.nombre}</span>
                 </div>
               </TableCell>
               <TableCell>{producto.descripcion}</TableCell>
-              <TableCell>{formatPrecio(producto.precio)}</TableCell>
               <TableCell>
                 <Badge color="blue">
                   {producto.categoria.nombre}
@@ -151,6 +142,9 @@ export function ProductosList() {
               </TableCell>
               <TableCell>
                 {producto.unidadMedida.nombre} ({producto.unidadMedida.abreviatura})
+              </TableCell>
+              <TableCell>
+                {new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB' }).format(producto.precio)}
               </TableCell>
               <TableCell>
                 {producto.stocks.map(stock => (
@@ -162,20 +156,18 @@ export function ProductosList() {
                 ))}
               </TableCell>
               <TableCell>
-                <div className="flex space-x-2">
-                  <Link 
+                <div className="flex items-center gap-2">
+                  <Link
                     to={`/app/productos/editar/${producto.id}`}
-                    className="px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 flex items-center gap-1"
+                    className="p-1 text-blue-600 hover:text-blue-800"
                   >
-                    <PencilIcon className="h-4 w-4" />
-                    Editar
+                    <PencilIcon className="w-5 h-5" />
                   </Link>
-                  <button 
+                  <button
                     onClick={() => handleDelete(producto.id)}
-                    className="px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 flex items-center gap-1"
+                    className="p-1 text-red-600 hover:text-red-800"
                   >
-                    <TrashIcon className="h-4 w-4" />
-                    Eliminar
+                    <TrashIcon className="w-5 h-5" />
                   </button>
                 </div>
               </TableCell>

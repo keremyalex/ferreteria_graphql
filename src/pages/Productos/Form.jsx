@@ -6,8 +6,7 @@ import {
   CREATE_PRODUCTO, 
   UPDATE_PRODUCTO,
   GET_CATEGORIAS,
-  GET_UNIDADES_MEDIDA,
-  GET_ALMACENES
+  GET_UNIDADES_MEDIDA
 } from '../../graphql/productos';
 import { toast } from 'react-toastify';
 
@@ -20,18 +19,14 @@ export function ProductoForm() {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    precio: '',
     categoriaId: '',
     unidadMedidaId: '',
-    almacenId: '',
-    urlImagen: '',
-    cantidad: ''
+    urlImagen: ''
   });
 
   // Consultas para obtener datos necesarios
   const { data: categoriasData } = useQuery(GET_CATEGORIAS);
   const { data: unidadesMedidaData } = useQuery(GET_UNIDADES_MEDIDA);
-  const { data: almacenesData } = useQuery(GET_ALMACENES);
   const { data: productoData, loading: loadingProducto } = useQuery(GET_PRODUCTO, {
     variables: { id: numericId },
     skip: !isEditing,
@@ -42,12 +37,9 @@ export function ProductoForm() {
         setFormData({
           nombre: producto.nombre || '',
           descripcion: producto.descripcion || '',
-          precio: producto.precio.toString() || '',
           categoriaId: producto.categoria.id || '',
           unidadMedidaId: producto.unidadMedida.id || '',
-          almacenId: producto.stocks[0]?.almacen.id || '',
-          urlImagen: producto.urlImagen || '',
-          cantidad: producto.stocks[0]?.cantidad.toString() || '0'
+          urlImagen: producto.urlImagen || ''
         });
       }
     },
@@ -85,12 +77,9 @@ export function ProductoForm() {
       const input = {
         nombre: formData.nombre,
         descripcion: formData.descripcion,
-        precio: parseFloat(formData.precio),
-        categoriaId: parseInt(formData.categoriaId),
-        unidadMedidaId: parseInt(formData.unidadMedidaId),
-        almacenId: parseInt(formData.almacenId),
-        urlImagen: formData.urlImagen || undefined,
-        cantidad: parseInt(formData.cantidad)
+        categoriaId: formData.categoriaId,
+        unidadMedidaId: formData.unidadMedidaId,
+        urlImagen: formData.urlImagen || undefined
       };
 
       if (isEditing) {
@@ -154,25 +143,6 @@ export function ProductoForm() {
             />
           </div>
 
-          {/* Precio */}
-          <div>
-            <label htmlFor="precio" className="block mb-1 text-sm font-medium text-gray-700">
-              Precio
-            </label>
-            <input
-              type="number"
-              id="precio"
-              name="precio"
-              required
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
-              value={formData.precio}
-              onChange={handleChange}
-            />
-          </div>
-
           {/* Categoría */}
           <div>
             <label htmlFor="categoriaId" className="block mb-1 text-sm font-medium text-gray-700">
@@ -215,46 +185,6 @@ export function ProductoForm() {
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Almacén */}
-          <div>
-            <label htmlFor="almacenId" className="block mb-1 text-sm font-medium text-gray-700">
-              Almacén
-            </label>
-            <select
-              id="almacenId"
-              name="almacenId"
-              required
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              value={formData.almacenId}
-              onChange={handleChange}
-            >
-              <option value="">Seleccione un almacén</option>
-              {almacenesData?.almacenes.map((almacen) => (
-                <option key={almacen.id} value={almacen.id}>
-                  {almacen.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Cantidad */}
-          <div>
-            <label htmlFor="cantidad" className="block mb-1 text-sm font-medium text-gray-700">
-              Cantidad en Stock
-            </label>
-            <input
-              type="number"
-              id="cantidad"
-              name="cantidad"
-              required
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0"
-              value={formData.cantidad}
-              onChange={handleChange}
-            />
           </div>
 
           {/* URL de la Imagen */}

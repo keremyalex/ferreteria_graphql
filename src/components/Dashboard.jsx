@@ -171,7 +171,6 @@ export const Dashboard = () => {
           onValueChange={setDateRange}
           locale="es-ES"
           className="max-w-md"
-          enableDropdown={false}
           selectPlaceholder="Seleccionar fechas"
         />
       </div>

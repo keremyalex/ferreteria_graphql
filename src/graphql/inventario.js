@@ -1,29 +1,5 @@
 import { gql } from '@apollo/client';
-
-export const REGISTRAR_MOVIMIENTO = gql`
-  mutation RegistrarMovimiento($input: MovimientoInput!) {
-    registrarMovimiento(input: $input) {
-      id
-      fecha
-      producto {
-        id
-        nombre
-      }
-      tipoMovimiento
-      cantidad
-      almacenOrigen {
-        id
-        nombre
-      }
-      almacenDestino {
-        id
-        nombre
-      }
-      observaciones
-      estado
-    }
-  }
-`;
+import { REGISTRAR_MOVIMIENTO } from './movimientos';
 
 export const GET_STOCK_PRODUCTO = gql`
   query GetProductoConStock($id: ID!) {
@@ -60,4 +36,8 @@ export const REFRESCAR_STOCK = gql`
       }
     }
   }
-`; 
+`;
+
+export {
+  REGISTRAR_MOVIMIENTO
+}; 

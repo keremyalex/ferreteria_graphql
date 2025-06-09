@@ -30,7 +30,8 @@ export const GET_PRODUCTOS = gql`
     }
 `;
 
-export const GET_PRODUCTO = gql`    query GetProducto($id: ID!) {
+export const GET_PRODUCTO = gql`
+    query GetProducto($id: ID!) {
         producto(id: $id) {
             id
             nombre
@@ -143,6 +144,15 @@ export const UPDATE_PRODUCTO = gql`
                     nombre
                 }
             }
+        }
+    }
+`;
+
+export const UPDATE_PRODUCTO_PRECIO = gql`
+    mutation ActualizarPrecioProducto($id: ID!, $precio: Float!) {
+        actualizarPrecioProducto(id: $id, precio: $precio) {
+            id
+            precio
         }
     }
 `;

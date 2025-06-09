@@ -154,8 +154,7 @@ const NuevaVenta = () => {
             )
             .map(producto => ({
                 value: producto.id,
-                label: producto.nombre,
-                precio: producto.precio
+                label: producto.nombre
             }));
         return Promise.resolve(filteredOptions);
     };
@@ -280,7 +279,7 @@ const NuevaVenta = () => {
             ...newDetalles[index],
             productoId: selectedOption.value,
             productoNombre: selectedOption.label,
-            precioUnitario: producto.precio,
+            precioUnitario: 0, // Inicializar en 0, se debe establecer manualmente
             almacenId: "",
             almacenNombre: "",
             stockDisponible: 0,
@@ -403,8 +402,7 @@ const NuevaVenta = () => {
                                         cacheOptions
                                         defaultOptions={productos.map(producto => ({
                                             value: producto.id,
-                                            label: producto.nombre,
-                                            precio: producto.precio
+                                            label: producto.nombre
                                         }))}
                                         loadOptions={loadProductoOptions}
                                         onChange={(option) => handleProductoChange(option, index)}
@@ -417,87 +415,92 @@ const NuevaVenta = () => {
                                 </div>
 
                                 {detalle.productoId && (
-                                    <div>
-                                        <label className="block mb-2 text-sm font-medium text-gray-700">
-                                            Almacén
-                                        </label>
-                                        <Select
-                                            key={`almacen-select-${detalle.productoId}-${stockData ? 'loaded' : 'loading'}`}
-                                            cacheOptions
-                                            defaultOptions={almacenOptions}
-                                            loadOptions={loadAlmacenOptions}
-                                            onChange={(option) => handleAlmacenChange(option, index)}
-                                            placeholder={stockLoading ? "Cargando almacenes..." : "Seleccionar almacén..."}
-                                            className="text-sm"
-                                            required
-                                            isLoading={stockLoading}
-                                            noOptionsMessage={() => {
-                                                if (stockError) return "Error al cargar el stock";
-                                                if (stockLoading) return "Cargando almacenes...";
-                                                if (!almacenOptions.length) return "No hay stock disponible";
-                                                return "No se encontraron almacenes";
-                                            }}
-                                            value={detalle.almacenId ? {
-                                                value: detalle.almacenId,
-                                                label: `${detalle.almacenNombre} (Stock: ${detalle.stockDisponible})`
-                                            } : null}
-                                        />
-                                        {stockLoading && (
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                Cargando información de stock...
-                                            </p>
-                                        )}
-                                        {stockError && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                                Error al cargar el stock: {stockError.message}
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                <div>
-                                    <label className="block mb-2 text-sm font-medium text-gray-700">
-                                        Cantidad
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={detalle.cantidad}
-                                        onChange={(e) => handleDetalleChange(index, "cantidad", e.target.value)}
-                                        className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        min="1"
-                                        max={detalle.stockDisponible}
-                                        required
-                                    />
-                                    {detalle.stockDisponible > 0 && (
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            Stock disponible: {detalle.stockDisponible}
-                                        </p>
-                                    )}
-                                </div>
-                                
-                                <div>
-                                    <label className="block mb-2 text-sm font-medium text-gray-700">
-                                        Precio Unitario
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={detalle.precioUnitario}
-                                        className="w-full px-3 py-2 bg-gray-100 border rounded focus:outline-none"
-                                        disabled
-                                    />
-                                </div>
+                                    <>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                Almacén
+                                            </label>
+                                            <Select
+                                                key={`almacen-select-${detalle.productoId}-${stockData ? 'loaded' : 'loading'}`}
+                                                cacheOptions
+                                                defaultOptions={almacenOptions}
+                                                loadOptions={loadAlmacenOptions}
+                                                onChange={(option) => handleAlmacenChange(option, index)}
+                                                placeholder={stockLoading ? "Cargando almacenes..." : "Seleccionar almacén..."}
+                                                className="text-sm"
+                                                required
+                                                isLoading={stockLoading}
+                                                noOptionsMessage={() => {
+                                                    if (stockError) return "Error al cargar el stock";
+                                                    if (stockLoading) return "Cargando almacenes...";
+                                                    if (!almacenOptions.length) return "No hay stock disponible";
+                                                    return "No se encontraron almacenes";
+                                                }}
+                                                value={detalle.almacenId ? {
+                                                    value: detalle.almacenId,
+                                                    label: `${detalle.almacenNombre} (Stock: ${detalle.stockDisponible})`
+                                                } : null}
+                                            />
+                                            {stockLoading && (
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    Cargando información de stock...
+                                                </p>
+                                            )}
+                                            {stockError && (
+                                                <p className="mt-1 text-sm text-red-500">
+                                                    Error al cargar el stock: {stockError.message}
+                                                </p>
+                                            )}
+                                        </div>
 
-                                <div>
-                                    <label className="block mb-2 text-sm font-medium text-gray-700">
-                                        Subtotal
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={calcularSubtotal(detalle)}
-                                        className="w-full px-3 py-2 bg-gray-100 border rounded focus:outline-none"
-                                        disabled
-                                    />
-                                </div>
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                Cantidad
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={detalle.cantidad}
+                                                onChange={(e) => handleDetalleChange(index, "cantidad", e.target.value)}
+                                                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                min="1"
+                                                max={detalle.stockDisponible}
+                                                required
+                                            />
+                                            {detalle.stockDisponible > 0 && (
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    Stock disponible: {detalle.stockDisponible}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                Precio Unitario
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={detalle.precioUnitario}
+                                                onChange={(e) => handleDetalleChange(index, "precioUnitario", e.target.value)}
+                                                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-2 text-sm font-medium text-gray-700">
+                                                Subtotal
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={calcularSubtotal(detalle)}
+                                                className="w-full px-3 py-2 bg-gray-100 border rounded focus:outline-none"
+                                                disabled
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             
                             {detalles.length > 1 && (

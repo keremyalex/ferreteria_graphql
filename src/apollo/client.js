@@ -6,15 +6,20 @@ const httpLink = createHttpLink({
   uri: 'http://localhost:3000/graphql',
 });
 
-const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
   if (graphQLErrors) {
-    console.log('GraphQL Errors:', graphQLErrors);
-    graphQLErrors.forEach(({ message, locations, path, extensions }) => {
+    for (let err of graphQLErrors) {
+      // Si el error es de autenticación
+      if (err.extensions?.code === 'UNAUTHENTICATED' || err.message.includes('Unauthorized')) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
       console.log(
-        `[GraphQL error]: Message: ${message}, Path: ${path}`,
-        '\nExtensions:', JSON.stringify(extensions, null, 2)
+        `[GraphQL error]: Message: ${err.message}, Path: ${err.path}`,
+        '\nExtensions:', JSON.stringify(err.extensions, null, 2)
       );
-    });
+    }
   }
 
   if (networkError) {

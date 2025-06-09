@@ -98,8 +98,21 @@ export const PERMISSIONS = {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const { data, loading, refetch } = useQuery(ME_QUERY, {
-    skip: !localStorage.getItem('token')
+    skip: !localStorage.getItem('token'),
+    onError: (error) => {
+      // Si hay un error de autenticación, limpiamos el token
+      if (error.message.includes('Unauthorized') || 
+          error.graphQLErrors?.some(err => 
+            err.extensions?.code === 'UNAUTHENTICATED' || 
+            err.message.includes('Unauthorized')
+          )) {
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    }
   });
 
   const [loginMutation] = useMutation(LOGIN_MUTATION);
@@ -108,7 +121,10 @@ export const AuthProvider = ({ children }) => {
     if (data?.me) {
       setUser(data.me);
     }
-  }, [data]);
+    if (!loading) {
+      setIsInitialized(true);
+    }
+  }, [data, loading]);
 
   const login = async (token) => {
     localStorage.setItem('token', token);
@@ -143,7 +159,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    loading,
+    loading: !isInitialized || loading,
     isAuthenticated: !!user,
     login,
     logout,
@@ -151,6 +167,15 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     loginMutation
   };
+
+  // No renderizamos nada hasta que se complete la inicialización
+  if (!isInitialized && loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }; 
