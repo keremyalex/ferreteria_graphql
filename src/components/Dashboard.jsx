@@ -1,23 +1,26 @@
-import { Card, Title, Text, Tab, TabList, TabGroup, TabPanels, TabPanel, Grid, DateRangePicker, Select, SelectItem } from "@tremor/react";
+import { Card, Title, Text, Tab, TabList, TabGroup, TabPanels, TabPanel, Grid } from "@tremor/react";
 import { BarChart, LineChart, DonutChart } from "@tremor/react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@apollo/client";
-import { GET_DASHBOARD_DATA } from "../graphql/Dashboard";
+import { GET_DASHBOARD_DATA, GET_PRODUCTOS_MAS_VENDIDOS, GET_PRODUCTOS_NOMBRES } from "../graphql/Dashboard";
 
 // Funciones de utilidad para manejo de fechas
 const formatearFecha = (fecha) => {
-  // Convertir cualquier formato de fecha a objeto Date
   const date = new Date(fecha);
-  return date.toISOString().split('T')[0]; // Retorna YYYY-MM-DD
+  return date.toISOString().split('T')[0];
 };
 
 const compararFechas = (fecha, desde, hasta) => {
   // Convertir todas las fechas a timestamps para comparación
   const fechaTimestamp = new Date(fecha).getTime();
-  const desdeTimestamp = new Date(desde.setHours(0, 0, 0, 0)).getTime(); // Inicio del día
-  const hastaTimestamp = new Date(hasta.setHours(23, 59, 59, 999)).getTime(); // Fin del día
+  const desdeDate = new Date(desde);
+  const hastaDate = new Date(hasta);
+  
+  // Establecer las horas para desde (inicio del día) y hasta (fin del día)
+  desdeDate.setHours(0, 0, 0, 0);
+  hastaDate.setHours(23, 59, 59, 999);
 
-  return fechaTimestamp >= desdeTimestamp && fechaTimestamp <= hastaTimestamp;
+  return fechaTimestamp >= desdeDate.getTime() && fechaTimestamp <= hastaDate.getTime();
 };
 
 const agruparPorFecha = (movimientos) => {
@@ -39,12 +42,33 @@ const agruparPorFecha = (movimientos) => {
 };
 
 export const Dashboard = () => {
-  const [dateRange, setDateRange] = useState({
-    from: new Date(new Date().setDate(new Date().getDate() - 30)),
-    to: new Date()
-  });
+  const [tipoFiltro, setTipoFiltro] = useState("PERIODO"); // "PERIODO" o "RANGO"
+  const [periodoVentas, setPeriodoVentas] = useState("ULTIMOS_30_DIAS");
+  const [fechaInicio, setFechaInicio] = useState(formatearFecha(new Date(new Date().setDate(new Date().getDate() - 30))));
+  const [fechaFin, setFechaFin] = useState(formatearFecha(new Date()));
 
   const { data: dashboardData, loading: dashboardLoading } = useQuery(GET_DASHBOARD_DATA);
+  
+  const { data: productosMasVendidosData, loading: productosMasVendidosLoading } = useQuery(GET_PRODUCTOS_MAS_VENDIDOS, {
+    variables: {
+      filtro: tipoFiltro === "PERIODO" 
+        ? { tipo: periodoVentas }
+        : { 
+            tipo: "RANGO",
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin
+          },
+      limite: 5
+    }
+  });
+
+  const { data: productosData } = useQuery(GET_PRODUCTOS_NOMBRES);
+
+  // Crear un mapa de IDs a nombres de productos
+  const productosMap = useMemo(() => {
+    if (!productosData?.productos) return new Map();
+    return new Map(productosData.productos.map(p => [p.id, p.nombre]));
+  }, [productosData]);
 
   // Procesamiento de datos para los gráficos
   const procesarDatos = () => {
@@ -55,10 +79,12 @@ export const Dashboard = () => {
       stockBajo: [],
       totalMovimientos: 0,
       totalProductos: 0,
-      valorInventario: 0
+      valorInventario: 0,
+      entradasPorDia: [],
+      salidasPorDia: []
     };
 
-    if (!dashboardData || !dashboardData.productos || !dashboardData.todosLosMovimientos) {
+    if (!dashboardData?.productos || !dashboardData?.todosLosMovimientos) {
       return datosVacios;
     }
 
@@ -66,7 +92,7 @@ export const Dashboard = () => {
       // Filtrar movimientos por rango de fechas
       const movimientosFiltrados = dashboardData.todosLosMovimientos
         .filter(mov => mov && mov.fecha && mov.producto)
-        .filter(mov => compararFechas(mov.fecha, dateRange.from, dateRange.to) && mov.estado === 'ACTIVO');
+        .filter(mov => compararFechas(mov.fecha, fechaInicio, fechaFin) && mov.estado === 'ACTIVO');
 
       // Agrupar entradas y salidas por fecha
       const movimientosEntrada = movimientosFiltrados.filter(mov => mov.tipoMovimiento === 'ENTRADA');
@@ -175,7 +201,11 @@ export const Dashboard = () => {
 
   const datos = procesarDatos();
 
-  if (dashboardLoading) return (
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  };
+
+  if (dashboardLoading || productosMasVendidosLoading) return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
     </div>
@@ -188,13 +218,48 @@ export const Dashboard = () => {
           <Title>Panel de Control - Ferretería</Title>
           <Text>Análisis de inventario y movimientos</Text>
         </div>
-        <DateRangePicker
-          value={dateRange}
-          onValueChange={setDateRange}
-          locale="es-ES"
-          className="max-w-md"
-          selectPlaceholder="Seleccionar fechas"
-        />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex gap-4">
+            <select
+              value={tipoFiltro}
+              onChange={(e) => setTipoFiltro(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="PERIODO">Período Predefinido</option>
+              <option value="RANGO">Rango de Fechas</option>
+            </select>
+          </div>
+          
+          {tipoFiltro === "PERIODO" ? (
+            <select
+              value={periodoVentas}
+              onChange={(e) => setPeriodoVentas(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="HOY">Hoy</option>
+              <option value="ULTIMOS_7_DIAS">Últimos 7 días</option>
+              <option value="ULTIMOS_30_DIAS">Últimos 30 días</option>
+              <option value="ESTE_MES">Este mes</option>
+              <option value="ESTE_ANIO">Este año</option>
+            </select>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="flex items-center">hasta</span>
+              <input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
+        </form>
       </div>
 
       <TabGroup>
@@ -247,19 +312,28 @@ export const Dashboard = () => {
 
               <Card>
                 <Title>Productos Más Vendidos</Title>
-                {datos.productosMasVendidos.length > 0 ? (
-                  <BarChart
-                    className="mt-4 h-80"
-                    data={datos.productosMasVendidos}
-                    index="producto"
-                    categories={["cantidad"]}
-                    colors={["green"]}
-                    yAxisWidth={48}
-                    valueFormatter={(value) => Math.round(value).toString()}
-                    minValue={0}
-                    maxValue={Math.max(...datos.productosMasVendidos.map(item => item.cantidad), 1)+2}
-                    yAxisTickFormatter={(value) => Math.round(value).toString()}
-                  />
+                {productosMasVendidosLoading ? (
+                  <div className="flex items-center justify-center h-80">
+                    <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+                  </div>
+                ) : productosMasVendidosData?.productosMasVendidos?.length > 0 ? (
+                  <div className="w-full h-80 min-h-[320px]">
+                    <BarChart
+                      className="h-full"
+                      data={productosMasVendidosData.productosMasVendidos.map(item => ({
+                        ...item,
+                        nombre_producto: productosMap.get(item.producto_id) || `Producto #${item.producto_id}`
+                      }))}
+                      index="nombre_producto"
+                      categories={["cantidad_total"]}
+                      colors={["green"]}
+                      yAxisWidth={48}
+                      valueFormatter={(value) => Math.round(value).toString()}
+                      minValue={0}
+                      maxValue={Math.max(...productosMasVendidosData.productosMasVendidos.map(item => item.cantidad_total), 1) + 2}
+                      yAxisTickFormatter={(value) => Math.round(value).toString()}
+                    />
+                  </div>
                 ) : (
                   <Text className="mt-4 text-center text-gray-500">
                     No hay ventas registradas en el período seleccionado
